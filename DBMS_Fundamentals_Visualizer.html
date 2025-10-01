@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBMS Fundamentals Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        /* Three-Schema Architecture Styles */
+        .schema-layers {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .layer {
+            width: 30%;
+            padding: 15px;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            position: relative;
+        }
+        .layer:hover {
+            background-color: #ecf0f1;
+        }
+        .layer.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .layer-content {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .layer.active .layer-content {
+            display: block;
+            color: #333; /* Added: Dark color for readability on light background */
+        }
+        /* Schema vs Instance Styles */
+        .schema-instance {
+            margin: 20px 0;
+            text-align: center;
+        }
+        table {
+            margin: 10px auto;
+            border-collapse: collapse;
+            width: 50%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        .toggle-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .toggle-btn:hover {
+            background: #2980b9;
+        }
+        .schema-view th {
+            background-color: #e74c3c; /* Red for schema */
+        }
+        .instance-view th {
+            background-color: #27ae60; /* Green for instance */
+        }
+        .instance-view td {
+            background-color: #d5f4e6; /* Light green for data */
+        }
+        /* Advantages Cards Styles */
+        .advantages {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .card {
+            border: 1px solid #bdc3c7;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+        .card-header {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .card-content {
+            padding: 15px;
+            display: none;
+        }
+        .card.active .card-content {
+            display: block;
+        }
+        .comparison {
+            background: #ecf0f1;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DBMS Fundamentals Visualizer</h1>
+        <p style="text-align: center;">Interactive demonstration of key DBMS concepts (Unit I, CO1)</p>
+
+        <!-- Section 1: Three-Schema Architecture -->
+        <h2>Three-Schema Architecture</h2>
+        <p>The Three-Schema Architecture separates user views (External), logical structure (Conceptual), and physical storage (Internal) for data independence.</p>
+        <div class="schema-layers">
+            <div class="layer" onclick="toggleLayer(this, 'external')">
+                <h3>External Schema (View Level)</h3>
+                <div class="layer-content">
+                    <p>Customized views for specific users or applications. Hides irrelevant data.</p>
+                    <ul>
+                        <li>Example: A sales user sees only sales data.</li>
+                        <li>Supports data independence from conceptual schema.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="layer" onclick="toggleLayer(this, 'conceptual')">
+                <h3>Conceptual Schema (Logical Level)</h3>
+                <div class="layer-content">
+                    <p>Defines the overall logical structure of the entire database.</p>
+                    <ul>
+                        <li>Example: Entities like Employee, Department with relationships.</li>
+                        <li>Independent of physical storage details.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="layer" onclick="toggleLayer(this, 'internal')">
+                <h3>Internal Schema (Physical Level)</h3>
+                <div class="layer-content">
+                    <p>Describes how data is stored physically (files, indexes, etc.).</p>
+                    <ul>
+                        <li>Example: Data stored in B-trees or hash files on disk.</li>
+                        <li>Optimizes storage and access efficiency.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Schema vs Instance -->
+        <h2>Difference Between Schema and Instance</h2>
+        <p>Schema is the blueprint/structure of the database (static), while Instance is the actual data at a point in time (dynamic).</p>
+        <div class="schema-instance">
+            <button class="toggle-btn" onclick="showSchema()">Show Schema (Structure)</button>
+            <button class="toggle-btn" onclick="showInstance()">Show Instance (Data)</button>
+            <table id="exampleTable" class="schema-view">
+                <thead>
+                    <tr>
+                        <th>StudentID (PK)</th>
+                        <th>Name (Simple Attribute)</th>
+                        <th>Address (Composite: Street, City)</th>
+                        <th>Age (Derived: Current Year - Birth Year)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data populated in JS for instance view -->
+                </tbody>
+            </table>
+            <p id="explanation">Schema defines the structure (e.g., columns and types). Instance populates it with actual records.</p>
+        </div>
+
+        <!-- Section 3: Advantages of DBMS over File Systems -->
+        <h2>Advantages of DBMS over Traditional File Systems</h2>
+        <p>Click on cards to expand comparisons.</p>
+        <div class="advantages">
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-header">Data Redundancy & Inconsistency</div>
+                <div class="card-content">
+                    <div class="comparison">
+                        <strong>File System:</strong> Data duplicated across files, leading to inconsistencies on updates.<br>
+                        <strong>DBMS:</strong> Centralized storage with integrity constraints reduces redundancy.
+                    </div>
+                </div>
+            </div>
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-header">Data Independence</div>
+                <div class="card-content">
+                    <div class="comparison">
+                        <strong>File System:</strong> Applications tightly coupled to file structures; changes require program rewrites.<br>
+                        <strong>DBMS:</strong> Logical/physical independence via three-schema architecture.
+                    </div>
+                </div>
+            </div>
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-header">Concurrent Access & Security</div>
+                <div class="card-content">
+                    <div class="comparison">
+                        <strong>File System:</strong> No built-in concurrency control; risk of data corruption. Limited security.<br>
+                        <strong>DBMS:</strong> Transaction management, locking, and user privileges ensure safe multi-user access.
+                    </div>
+                </div>
+            </div>
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-header">Backup & Recovery</div>
+                <div class="card-content">
+                    <div class="comparison">
+                        <strong>File System:</strong> Manual backups; no automatic recovery from failures.<br>
+                        <strong>DBMS:</strong> Automated logging, backups, and recovery mechanisms.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JS for Three-Schema Layers
+        function toggleLayer(element, type) {
+            // Remove active class from all layers
+            document.querySelectorAll('.layer').forEach(layer => layer.classList.remove('active'));
+            // Add active to clicked
+            element.classList.add('active');
+        }
+
+        // JS for Schema vs Instance
+        function showSchema() {
+            const table = document.getElementById('exampleTable');
+            table.classList.remove('instance-view');
+            table.classList.add('schema-view');
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = ''; // Empty data
+            document.getElementById('explanation').innerHTML = 'Schema defines the structure (e.g., columns and types). No data is shown.';
+        }
+
+        function showInstance() {
+            const table = document.getElementById('exampleTable');
+            table.classList.remove('schema-view');
+            table.classList.add('instance-view');
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td>101</td>
+                    <td>John Doe</td>
+                    <td>123 Main St, New York</td>
+                    <td>25</td>
+                </tr>
+                <tr>
+                    <td>102</td>
+                    <td>Jane Smith</td>
+                    <td>456 Oak Ave, Los Angeles</td>
+                    <td>30</td>
+                </tr>
+            `;
+            document.getElementById('explanation').innerHTML = 'Instance shows actual data records based on the schema. Data can change over time.';
+        }
+
+        // JS for Advantages Cards
+        function toggleCard(element) {
+            element.classList.toggle('active');
+        }
+
+        // Initialize: Show schema by default
+        showSchema();
+    </script>
+</body>
+</html>

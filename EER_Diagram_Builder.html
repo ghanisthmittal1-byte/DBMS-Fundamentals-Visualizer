@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER/EER Diagram Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #fff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .toggle-btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .toggle-btn:hover {
+            background-color: #2563eb;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            width: 250px;
+            background-color: #fff;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+        }
+
+        .tool-section h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .tool-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .tool-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .attribute-options {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .attribute-options.show {
+            display: block;
+        }
+
+        .canvas-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background-color: #f8f9fa;
+        }
+
+        #canvas {
+            width: 2000px;
+            height: 2000px;
+            position: relative;
+            background-image: 
+                linear-gradient(#ddd 1px, transparent 1px),
+                linear-gradient(90deg, #ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .entity {
+            position: absolute;
+            background-color: #fff;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            min-width: 180px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: move;
+            user-select: none;
+        }
+
+        .entity-header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .entity-content {
+            padding: 10px;
+        }
+
+        .attribute {
+            padding: 5px;
+            margin: 3px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+
+        .attribute.simple::before {
+            content: "○";
+            margin-right: 5px;
+            color: #666;
+        }
+
+        .attribute.composite::before {
+            content: "⧉";
+            margin-right: 5px;
+            color: #666;
+        }
+
+        .attribute.derived::before {
+            content: "⟳";
+            margin-right: 5px;
+            color: #666;
+        }
+
+        .attribute.multivalued::before {
+            content: "{ }";
+            margin-right: 5px;
+            color: #666;
+        }
+
+        .attribute.primary-key {
+            font-weight: bold;
+        }
+
+        .relationship {
+            position: absolute;
+            z-index: 10;
+        }
+
+        .relationship-line {
+            stroke: #666;
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+
+        .relationship-text {
+            font-size: 12px;
+            background-color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 5px 0;
+        }
+
+        .context-menu li {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .context-menu li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .schema-panel {
+            width: 350px;
+            background-color: #fff;
+            border-left: 1px solid #ddd;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -2px 0 4px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+
+        .schema-panel.show {
+            display: block;
+        }
+
+        .schema-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .schema-table th {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .schema-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .schema-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .pk {
+            font-weight: bold;
+        }
+
+        .fk {
+            color: #3b82f6;
+            font-style: italic;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .cardinality-select {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .cardinality-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .toolbar, .schema-panel {
+                width: 220px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .toolbar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+                padding: 10px;
+            }
+            
+            .tool-section {
+                display: inline-block;
+                margin-right: 20px;
+                margin-bottom: 10px;
+                vertical-align: top;
+            }
+            
+            .schema-panel {
+                width: 100%;
+                height: 300px;
+                border-left: none;
+                border-top: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ER/EER Diagram Builder</h1>
+        <button id="toggleSchema" class="toggle-btn">Show Schema</button>
+    </div>
+
+    <div class="main-container">
+        <div class="toolbar">
+            <div class="tool-section">
+                <h3>Diagram Elements</h3>
+                <button class="tool-btn" data-tool="entity">Entity</button>
+                <button class="tool-btn" data-tool="relationship">Relationship</button>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Attributes</h3>
+                <button class="tool-btn" data-tool="attribute-simple">Simple Attribute</button>
+                <button class="tool-btn" data-tool="attribute-composite">Composite Attribute</button>
+                <button class="tool-btn" data-tool="attribute-derived">Derived Attribute</button>
+                <button class="tool-btn" data-tool="attribute-multivalued">Multivalued Attribute</button>
+                
+                <div class="attribute-options" id="attributeOptions">
+                    <div class="form-group">
+                        <label for="attributeName">Attribute Name</label>
+                        <input type="text" id="attributeName" class="form-control" placeholder="Enter attribute name">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="isPrimaryKey"> Primary Key
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" id="addAttributeBtn">Add Attribute</button>
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Actions</h3>
+                <button class="tool-btn" id="generateSchema">Generate Schema</button>
+                <button class="tool-btn" id="clearCanvas">Clear Canvas</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div id="canvas"></div>
+            
+            <svg id="relationships-svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+
+        <div class="schema-panel" id="schemaPanel">
+            <h3>Generated Relational Schema</h3>
+            <div id="schemaOutput"></div>
+        </div>
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <ul>
+            <li data-action="rename">Rename</li>
+            <li data-action="delete">Delete</li>
+            <li data-action="set-primary-key">Set as Primary Key</li>
+        </ul>
+    </div>
+
+    <div class="modal" id="entityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Entity</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="entityName">Entity Name</label>
+                    <input type="text" id="entityName" class="form-control" placeholder="Enter entity name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEntity">Cancel</button>
+                <button class="btn btn-primary" id="saveEntity">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="relationshipModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Relationship</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="relationshipName">Relationship Name</label>
+                    <input type="text" id="relationshipName" class="form-control" placeholder="Enter relationship name">
+                </div>
+                <div class="cardinality-options">
+                    <div>
+                        <label>Entity 1</label>
+                        <select id="cardinality1" class="cardinality-select">
+                            <option value="1">1</option>
+                            <option value="N">N</option>
+                            <option value="M">M</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Entity 2</label>
+                        <select id="cardinality2" class="cardinality-select">
+                            <option value="1">1</option>
+                            <option value="N">N</option>
+                            <option value="M">M</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelRelationship">Cancel</button>
+                <button class="btn btn-primary" id="saveRelationship">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Main state variables
+            let selectedTool = null;
+            let entities = [];
+            let relationships = [];
+            let selectedEntity = null;
+            let isDragging = false;
+            let dragOffset = { x: 0, y: 0 };
+            let connectingEntities = [];
+            let tempLine = null;
+            
+            // DOM Elements
+            const canvas = document.getElementById('canvas');
+            const contextMenu = document.getElementById('contextMenu');
+            const schemaPanel = document.getElementById('schemaPanel');
+            const schemaOutput = document.getElementById('schemaOutput');
+            const attributeOptions = document.getElementById('attributeOptions');
+            
+            // Tool buttons
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    
+                    // Activate clicked button
+                    this.classList.add('active');
+                    
+                    const tool = this.getAttribute('data-tool');
+                    selectedTool = tool;
+                    
+                    // Show attribute options if an attribute tool is selected
+                    if (tool.startsWith('attribute-')) {
+                        attributeOptions.classList.add('show');
+                        selectedEntity = null;
+                    } else {
+                        attributeOptions.classList.remove('show');
+                        
+                        if (tool === 'entity') {
+                            showEntityModal();
+                        }
+                    }
+                });
+            });
+            
+            // Entity modal handling
+            const entityModal = document.getElementById('entityModal');
+            const entityNameInput = document.getElementById('entityName');
+            
+            function showEntityModal() {
+                entityModal.classList.add('show');
+                entityNameInput.value = '';
+                entityNameInput.focus();
+            }
+            
+            document.getElementById('cancelEntity').addEventListener('click', function() {
+                entityModal.classList.remove('show');
+                selectedTool = null;
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            });
+            
+            document.getElementById('saveEntity').addEventListener('click', function() {
+                const name = entityNameInput.value.trim();
+                if (name) {
+                    createEntity(name);
+                    entityModal.classList.remove('show');
+                    selectedTool = null;
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                }
+            });
+            
+            // Relationship modal handling
+            const relationshipModal = document.getElementById('relationshipModal');
+            const relationshipNameInput = document.getElementById('relationshipName');
+            
+            function showRelationshipModal() {
+                if (connectingEntities.length === 2) {
+                    relationshipModal.classList.add('show');
+                    relationshipNameInput.value = '';
+                    relationshipNameInput.focus();
+                }
+            }
+            
+            document.getElementById('cancelRelationship').addEventListener('click', function() {
+                relationshipModal.classList.remove('show');
+                connectingEntities = [];
+                if (tempLine) {
+                    tempLine.remove();
+                    tempLine = null;
+                }
+                selectedTool = null;
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            });
+            
+            document.getElementById('saveRelationship').addEventListener('click', function() {
+                const name = relationshipNameInput.value.trim();
+                const cardinality1 = document.getElementById('cardinality1').value;
+                const cardinality2 = document.getElementById('cardinality2').value;
+                
+                if (name && connectingEntities.length === 2) {
+                    createRelationship(name, connectingEntities[0], connectingEntities[1], cardinality1, cardinality2);
+                    relationshipModal.classList.remove('show');
+                    connectingEntities = [];
+                    selectedTool = null;
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                }
+            });
+            
+            // Create a new entity
+            function createEntity(name) {
+                const entityId = 'entity-' + Date.now();
+                const x = 100;
+                const y = 100;
+                
+                const entityElement = document.createElement('div');
+                entityElement.id = entityId;
+                entityElement.className = 'entity';
+                entityElement.style.left = x + 'px';
+                entityElement.style.top = y + 'px';
+                
+                entityElement.innerHTML = `
+                    <div class="entity-header">${name}</div>
+                    <div class="entity-content" id="${entityId}-content"></div>
+                `;
+                
+                canvas.appendChild(entityElement);
+                
+                // Add to entities array
+                entities.push({
+                    id: entityId,
+                    name: name,
+                    attributes: [],
+                    x: x,
+                    y: y,
+                    element: entityElement
+                });
+                
+                // Make entity draggable
+                makeDraggable(entityElement);
+                
+                // Add click event to select entity for attributes
+                entityElement.addEventListener('click', function(e) {
+                    if (selectedTool && selectedTool.startsWith('attribute-')) {
+                        selectedEntity = entityId;
+                        e.stopPropagation();
+                    } else if (selectedTool === 'relationship') {
+                        if (connectingEntities.length < 2 && !connectingEntities.includes(entityId)) {
+                            connectingEntities.push(entityId);
+                            if (connectingEntities.length === 2) {
+                                showRelationshipModal();
+                            }
+                        }
+                        e.stopPropagation();
+                    }
+                });
+                
+                // Add context menu
+                entityElement.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    showContextMenu(e, entityId, 'entity');
+                });
+            }
+            
+            // Add attribute to entity
+            document.getElementById('addAttributeBtn').addEventListener('click', function() {
+                if (!selectedEntity) {
+                    alert('Please select an entity first by clicking on it.');
+                    return;
+                }
+                
+                const attributeName = document.getElementById('attributeName').value.trim();
+                const isPrimaryKey = document.getElementById('isPrimaryKey').checked;
+                const attributeType = selectedTool.split('-')[1];
+                
+                if (!attributeName) {
+                    alert('Please enter an attribute name.');
+                    return;
+                }
+                
+                const entity = entities.find(e => e.id === selectedEntity);
+                if (entity) {
+                    // Check if this is already a primary key
+                    if (isPrimaryKey) {
+                        // Remove primary key from any existing attribute
+                        entity.attributes.forEach(attr => {
+                            attr.isPrimaryKey = false;
+                        });
+                    }
+                    
+                    // Add the attribute
+                    entity.attributes.push({
+                        name: attributeName,
+                        type: attributeType,
+                        isPrimaryKey: isPrimaryKey
+                    });
+                    
+                    // Update the entity display
+                    updateEntityDisplay(entity);
+                    
+                    // Reset form
+                    document.getElementById('attributeName').value = '';
+                    document.getElementById('isPrimaryKey').checked = false;
+                }
+            });
+            
+            // Update entity display with attributes
+            function updateEntityDisplay(entity) {
+                const contentElement = document.getElementById(entity.id + '-content');
+                contentElement.innerHTML = '';
+                
+                entity.attributes.forEach(attr => {
+                    const attrElement = document.createElement('div');
+                    attrElement.className = `attribute ${attr.type} ${attr.isPrimaryKey ? 'primary-key' : ''}`;
+                    attrElement.textContent = attr.name + (attr.isPrimaryKey ? ' (PK)' : '');
+                    
+                    // Add context menu for attributes
+                    attrElement.addEventListener('contextmenu', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showContextMenu(e, {entityId: entity.id, attrName: attr.name}, 'attribute');
+                    });
+                    
+                    contentElement.appendChild(attrElement);
+                });
+            }
+            
+            // Create a relationship between two entities
+            function createRelationship(name, entity1Id, entity2Id, cardinality1, cardinality2) {
+                const relationshipId = 'relationship-' + Date.now();
+                
+                const entity1 = entities.find(e => e.id === entity1Id);
+                const entity2 = entities.find(e => e.id === entity2Id);
+                
+                if (!entity1 || !entity2) return;
+                
+                // Calculate center points of entities
+                const rect1 = entity1.element.getBoundingClientRect();
+                const rect2 = entity2.element.getBoundingClientRect();
+                
+                const x1 = rect1.left + rect1.width / 2;
+                const y1 = rect1.top + rect1.height / 2;
+                const x2 = rect2.left + rect2.width / 2;
+                const y2 = rect2.top + rect2.height / 2;
+                
+                // Calculate midpoint for label
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                
+                // Create SVG line
+                const svg = document.getElementById('relationships-svg');
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.id = relationshipId + '-line';
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('class', 'relationship-line');
+                
+                // Create text label
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.id = relationshipId + '-text';
+                text.setAttribute('x', midX);
+                text.setAttribute('y', midY - 10);
+                text.setAttribute('class', 'relationship-text');
+                text.textContent = `${name} (${cardinality1}:${cardinality2})`;
+                
+                svg.appendChild(line);
+                svg.appendChild(text);
+                
+                // Add to relationships array
+                relationships.push({
+                    id: relationshipId,
+                    name: name,
+                    entity1: entity1Id,
+                    entity2: entity2Id,
+                    cardinality1: cardinality1,
+                    cardinality2: cardinality2,
+                    line: line,
+                    text: text
+                });
+                
+                // Update relationship positions when entities move
+                const observer = new MutationObserver(function() {
+                    updateRelationshipPosition(relationshipId);
+                });
+                
+                observer.observe(entity1.element, { attributes: true, attributeFilter: ['style'] });
+                observer.observe(entity2.element, { attributes: true, attributeFilter: ['style'] });
+            }
+            
+            // Update relationship position when entities move
+            function updateRelationshipPosition(relationshipId) {
+                const relationship = relationships.find(r => r.id === relationshipId);
+                if (!relationship) return;
+                
+                const entity1 = entities.find(e => e.id === relationship.entity1);
+                const entity2 = entities.find(e => e.id === relationship.entity2);
+                
+                if (!entity1 || !entity2) return;
+                
+                const rect1 = entity1.element.getBoundingClientRect();
+                const rect2 = entity2.element.getBoundingClientRect();
+                
+                const x1 = rect1.left + rect1.width / 2;
+                const y1 = rect1.top + rect1.height / 2;
+                const x2 = rect2.left + rect2.width / 2;
+                const y2 = rect2.top + rect2.height / 2;
+                
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                
+                relationship.line.setAttribute('x1', x1);
+                relationship.line.setAttribute('y1', y1);
+                relationship.line.setAttribute('x2', x2);
+                relationship.line.setAttribute('y2', y2);
+                
+                relationship.text.setAttribute('x', midX);
+                relationship.text.setAttribute('y', midY - 10);
+            }
+            
+            // Make entities draggable
+            function makeDraggable(element) {
+                element.addEventListener('mousedown', function(e) {
+                    if (e.button !== 0) return; // Only left click
+                    
+                    isDragging = true;
+                    const rect = element.getBoundingClientRect();
+                    dragOffset = {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                    };
+                    
+                    element.style.zIndex = 1000;
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', function(e) {
+                    if (!isDragging) return;
+                    
+                    const x = e.clientX - dragOffset.x;
+                    const y = e.clientY - dragOffset.y;
+                    
+                    element.style.left = x + 'px';
+                    element.style.top = y + 'px';
+                    
+                    // Update entity position in array
+                    const entityId = element.id;
+                    const entity = entities.find(e => e.id === entityId);
+                    if (entity) {
+                        entity.x = x;
+                        entity.y = y;
+                    }
+                    
+                    // Update all relationships for this entity
+                    relationships.forEach(rel => {
+                        if (rel.entity1 === entityId || rel.entity2 === entityId) {
+                            updateRelationshipPosition(rel.id);
+                        }
+                    });
+                });
+                
+                document.addEventListener('mouseup', function() {
+                    isDragging = false;
+                    element.style.zIndex = '';
+                });
+            }
+            
+            // Context menu handling
+            function showContextMenu(e, target, type) {
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = e.pageX + 'px';
+                contextMenu.style.top = e.pageY + 'px';
+                
+                // Remove previous event listeners
+                const items = contextMenu.querySelectorAll('li');
+                items.forEach(item => {
+                    item.replaceWith(item.cloneNode(true));
+                });
+                
+                // Add new event listeners
+                contextMenu.querySelectorAll('li').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const action = this.getAttribute('data-action');
+                        handleContextMenuAction(action, target, type);
+                        contextMenu.style.display = 'none';
+                    });
+                });
+                
+                // Hide context menu when clicking elsewhere
+                const hideMenu = function() {
+                    contextMenu.style.display = 'none';
+                    document.removeEventListener('click', hideMenu);
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('click', hideMenu);
+                }, 100);
+            }
+            
+            function handleContextMenuAction(action, target, type) {
+                if (type === 'entity') {
+                    const entity = entities.find(e => e.id === target);
+                    if (!entity) return;
+                    
+                    if (action === 'rename') {
+                        const newName = prompt('Enter new name for entity:', entity.name);
+                        if (newName && newName.trim()) {
+                            entity.name = newName.trim();
+                            entity.element.querySelector('.entity-header').textContent = newName.trim();
+                        }
+                    } else if (action === 'delete') {
+                        if (confirm('Are you sure you want to delete this entity?')) {
+                            // Remove entity element
+                            entity.element.remove();
+                            
+                            // Remove relationships connected to this entity
+                            relationships.filter(rel => 
+                                rel.entity1 === target || rel.entity2 === target
+                            ).forEach(rel => {
+                                rel.line.remove();
+                                rel.text.remove();
+                            });
+                            
+                            relationships = relationships.filter(rel => 
+                                rel.entity1 !== target && rel.entity2 !== target
+                            );
+                            
+                            // Remove from entities array
+                            entities = entities.filter(e => e.id !== target);
+                        }
+                    }
+                } else if (type === 'attribute') {
+                    const entity = entities.find(e => e.id === target.entityId);
+                    if (!entity) return;
+                    
+                    const attributeIndex = entity.attributes.findIndex(attr => attr.name === target.attrName);
+                    if (attributeIndex === -1) return;
+                    
+                    if (action === 'rename') {
+                        const newName = prompt('Enter new name for attribute:', entity.attributes[attributeIndex].name);
+                        if (newName && newName.trim()) {
+                            entity.attributes[attributeIndex].name = newName.trim();
+                            updateEntityDisplay(entity);
+                        }
+                    } else if (action === 'delete') {
+                        entity.attributes.splice(attributeIndex, 1);
+                        updateEntityDisplay(entity);
+                    } else if (action === 'set-primary-key') {
+                        // Remove primary key from any existing attribute
+                        entity.attributes.forEach(attr => {
+                            attr.isPrimaryKey = false;
+                        });
+                        
+                        // Set this attribute as primary key
+                        entity.attributes[attributeIndex].isPrimaryKey = true;
+                        updateEntityDisplay(entity);
+                    }
+                }
+            }
+            
+            // Generate relational schema
+            document.getElementById('generateSchema').addEventListener('click', function() {
+                generateSchema();
+                document.getElementById('toggleSchema').textContent = 'Hide Schema';
+                schemaPanel.classList.add('show');
+            });
+            
+            document.getElementById('toggleSchema').addEventListener('click', function() {
+                if (schemaPanel.classList.contains('show')) {
+                    schemaPanel.classList.remove('show');
+                    this.textContent = 'Show Schema';
+                } else {
+                    generateSchema();
+                    schemaPanel.classList.add('show');
+                    this.textContent = 'Hide Schema';
+                }
+            });
+            
+            function generateSchema() {
+                let schemaHTML = '';
+                
+                // Generate tables for entities
+                entities.forEach(entity => {
+                    const tableName = entity.name.toLowerCase();
+                    let columns = '';
+                    
+                    // Add attributes as columns
+                    entity.attributes.forEach(attr => {
+                        let colType = 'VARCHAR(255)';
+                        if (attr.type === 'derived') colType = 'COMPUTED';
+                        if (attr.type === 'multivalued') {
+                            // For multivalued attributes, we'll create a separate table
+                            return;
+                        }
+                        
+                        columns += `
+                            <tr>
+                                <td class="${attr.isPrimaryKey ? 'pk' : ''}">${attr.name}</td>
+                                <td>${colType}</td>
+                                <td>${attr.isPrimaryKey ? 'PRIMARY KEY' : ''}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    // Check for foreign keys from relationships
+                    relationships.forEach(rel => {
+                        if (rel.entity1 === entity.id) {
+                            const otherEntity = entities.find(e => e.id === rel.entity2);
+                            if (otherEntity) {
+                                const pk = otherEntity.attributes.find(attr => attr.isPrimaryKey);
+                                if (pk) {
+                                    columns += `
+                                        <tr>
+                                            <td class="fk">${otherEntity.name.toLowerCase()}_${pk.name}</td>
+                                            <td>VARCHAR(255)</td>
+                                            <td>FOREIGN KEY REFERENCES ${otherEntity.name.toLowerCase()}(${pk.name})</td>
+                                        </tr>
+                                    `;
+                                }
+                            }
+                        } else if (rel.entity2 === entity.id) {
+                            const otherEntity = entities.find(e => e.id === rel.entity1);
+                            if (otherEntity) {
+                                const pk = otherEntity.attributes.find(attr => attr.isPrimaryKey);
+                                if (pk) {
+                                    columns += `
+                                        <tr>
+                                            <td class="fk">${otherEntity.name.toLowerCase()}_${pk.name}</td>
+                                            <td>VARCHAR(255)</td>
+                                            <td>FOREIGN KEY REFERENCES ${otherEntity.name.toLowerCase()}(${pk.name})</td>
+                                        </tr>
+                                    `;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Create relationship tables for M:N relationships
+                    relationships.forEach(rel => {
+                        if ((rel.cardinality1 === 'M' && rel.cardinality2 === 'N') || 
+                            (rel.cardinality1 === 'N' && rel.cardinality2 === 'M')) {
+                            
+                            const entity1 = entities.find(e => e.id === rel.entity1);
+                            const entity2 = entities.find(e => e.id === rel.entity2);
+                            
+                            if (entity1 && entity2) {
+                                const pk1 = entity1.attributes.find(attr => attr.isPrimaryKey);
+                                const pk2 = entity2.attributes.find(attr => attr.isPrimaryKey);
+                                
+                                if (pk1 && pk2) {
+                                    schemaHTML += `
+                                        <h4>${rel.name.replace(/\s+/g, '_').toLowerCase()} (Relationship Table)</h4>
+                                        <table class="schema-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Column</th>
+                                                    <th>Type</th>
+                                                    <th>Constraints</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="fk">${entity1.name.toLowerCase()}_${pk1.name}</td>
+                                                    <td>VARCHAR(255)</td>
+                                                    <td>FOREIGN KEY REFERENCES ${entity1.name.toLowerCase()}(${pk1.name})</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fk">${entity2.name.toLowerCase()}_${pk2.name}</td>
+                                                    <td>VARCHAR(255)</td>
+                                                    <td>FOREIGN KEY REFERENCES ${entity2.name.toLowerCase()}(${pk2.name})</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    `;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Create separate tables for multivalued attributes
+                    entity.attributes.filter(attr => attr.type === 'multivalued').forEach(attr => {
+                        const pk = entity.attributes.find(a => a.isPrimaryKey);
+                        if (pk) {
+                            schemaHTML += `
+                                <h4>${entity.name.toLowerCase()}_${attr.name.replace(/\s+/g, '_').toLowerCase()} (Multivalued Attribute)</h4>
+                                <table class="schema-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Type</th>
+                                            <th>Constraints</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="fk">${entity.name.toLowerCase()}_${pk.name}</td>
+                                            <td>VARCHAR(255)</td>
+                                            <td>FOREIGN KEY REFERENCES ${entity.name.toLowerCase()}(${pk.name})</td>
+                                        </tr>
+                                        <tr>
+                                            <td>${attr.name}</td>
+                                            <td>VARCHAR(255)</td>
+                                            <td></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            `;
+                        }
+                    });
+                    
+                    if (columns) {
+                        schemaHTML += `
+                            <h4>${tableName}</h4>
+                            <table class="schema-table">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Type</th>
+                                        <th>Constraints</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${columns}
+                                </tbody>
+                            </table>
+                        `;
+                    }
+                });
+                
+                schemaOutput.innerHTML = schemaHTML || '<p>No entities defined yet.</p>';
+            }
+            
+            // Clear canvas
+            document.getElementById('clearCanvas').addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear the canvas? This will remove all entities and relationships.')) {
+                    // Remove all entities
+                    entities.forEach(entity => {
+                        entity.element.remove();
+                    });
+                    entities = [];
+                    
+                    // Remove all relationships
+                    relationships.forEach(rel => {
+                        rel.line.remove();
+                        rel.text.remove();
+                    });
+                    relationships = [];
+                    
+                    // Clear schema
+                    schemaOutput.innerHTML = '';
+                    
+                    // Reset selected tool
+                    selectedTool = null;
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                    attributeOptions.classList.remove('show');
+                }
+            });
+            
+            // Close modals with Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    entityModal.classList.remove('show');
+                    relationshipModal.classList.remove('show');
+                    contextMenu.style.display = 'none';
+                    
+                    if (selectedTool === 'relationship') {
+                        connectingEntities = [];
+                        if (tempLine) {
+                            tempLine.remove();
+                            tempLine = null;
+                        }
+                    }
+                    
+                    selectedTool = null;
+                    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                }
+            });
+        });
+    </script>
+</body>
+</html>

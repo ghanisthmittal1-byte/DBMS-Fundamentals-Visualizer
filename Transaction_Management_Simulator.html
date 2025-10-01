@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Management Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50, #4a69bd);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .transaction-states {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .state {
+            padding: 15px 25px;
+            margin: 0 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .state.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .state.partially-committed {
+            background-color: #9b59b6;
+            color: white;
+        }
+
+        .state.committed {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .state.failed {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .state.aborted {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .state.inactive {
+            background-color: #ecf0f1;
+            color: #7f8c8d;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .acid-properties {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .property {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .property h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .dirty-read-demo {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .transactions {
+            display: flex;
+            gap: 20px;
+        }
+
+        .transaction {
+            flex: 1;
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .data-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .privilege-controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .user-list {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .user {
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .user.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .highlight {
+            background-color: yellow;
+            transition: background-color 0.5s;
+        }
+
+        .arrow {
+            font-size: 24px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .transaction-states {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .transactions {
+                flex-direction: column;
+            }
+            
+            .acid-properties {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Transaction Management Simulator</h1>
+            <p class="description">Explore transaction states, ACID properties, and database concurrency control through interactive simulations</p>
+        </header>
+
+        <section class="section">
+            <h2>Transaction States</h2>
+            <p>Transactions progress through different states during their lifecycle. Click through the states to see the transitions:</p>
+            
+            <div class="transaction-states">
+                <div class="state inactive" id="active">Active</div>
+                <div class="state inactive" id="partially-committed">Partially Committed</div>
+                <div class="state inactive" id="committed">Committed</div>
+                <div class="state inactive" id="failed">Failed</div>
+                <div class="state inactive" id="aborted">Aborted</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" id="prev-state">Previous State</button>
+                <button class="btn" id="next-state">Next State</button>
+                <button class="btn" id="reset-states">Reset</button>
+            </div>
+            
+            <div id="state-description">
+                <p>Click "Next State" to begin the transaction lifecycle simulation.</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>ACID Properties</h2>
+            <div class="acid-properties">
+                <div class="property">
+                    <h3>Atomicity</h3>
+                    <p>Transactions are "all or nothing" - either all operations complete successfully or none do.</p>
+                    <button class="btn" onclick="demoAtomicity()">Demonstrate</button>
+                </div>
+                
+                <div class="property">
+                    <h3>Consistency</h3>
+                    <p>Transactions bring the database from one valid state to another, maintaining all rules and constraints.</p>
+                    <button class="btn" onclick="demoConsistency()">Demonstrate</button>
+                </div>
+                
+                <div class="property">
+                    <h3>Isolation</h3>
+                    <p>Concurrent transactions don't interfere with each other, appearing to execute serially.</p>
+                    <button class="btn" onclick="demoIsolation()">Demonstrate</button>
+                </div>
+                
+                <div class="property">
+                    <h3>Durability</h3>
+                    <p>Once a transaction is committed, its changes persist even in case of system failure.</p>
+                    <button class="btn" onclick="demoDurability()">Demonstrate</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Dirty Read Scenario</h2>
+            <p>Dirty reads occur when a transaction reads data that has been modified by another transaction but not yet committed.</p>
+            
+            <div class="dirty-read-demo">
+                <div class="controls">
+                    <button class="btn" onclick="startDirtyReadDemo()">Start Demo</button>
+                    <button class="btn" onclick="resetDirtyReadDemo()">Reset Demo</button>
+                </div>
+                
+                <div class="transactions">
+                    <div class="transaction" id="transaction1">
+                        <h3>Transaction 1 (T1)</h3>
+                        <p>Operation sequence:</p>
+                        <ol>
+                            <li id="t1-step1">START TRANSACTION</li>
+                            <li id="t1-step2">UPDATE accounts SET balance = 1500 WHERE id = 1</li>
+                            <li id="t1-step3">(waiting)</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="transaction" id="transaction2">
+                        <h3>Transaction 2 (T2)</h3>
+                        <p>Operation sequence:</p>
+                        <ol>
+                            <li id="t2-step1">START TRANSACTION</li>
+                            <li id="t2-step2">SELECT balance FROM accounts WHERE id = 1</li>
+                            <li id="t2-step3">(waiting)</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <h3>Database State</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Account ID</th>
+                            <th>Account Name</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accounts-data">
+                        <tr>
+                            <td>1</td>
+                            <td>John Doe</td>
+                            <td id="account1-balance">1000</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Jane Smith</td>
+                            <td>2500</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div id="dirty-read-explanation">
+                    <p>When T1 updates but doesn't commit, and T2 reads the uncommitted data, this is a dirty read.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>GRANT and REVOKE Privileges</h2>
+            <p>Database systems control access through privilege management. Select a user and privilege to grant or revoke.</p>
+            
+            <div class="privilege-controls">
+                <select id="user-select">
+                    <option value="admin">Admin User</option>
+                    <option value="manager">Manager User</option>
+                    <option value="analyst">Analyst User</option>
+                    <option value="guest">Guest User</option>
+                </select>
+                
+                <select id="privilege-select">
+                    <option value="select">SELECT</option>
+                    <option value="insert">INSERT</option>
+                    <option value="update">UPDATE</option>
+                    <option value="delete">DELETE</option>
+                    <option value="all">ALL PRIVILEGES</option>
+                </select>
+                
+                <button class="btn" onclick="grantPrivilege()">GRANT</button>
+                <button class="btn" onclick="revokePrivilege()">REVOKE</button>
+            </div>
+            
+            <div class="user-list">
+                <div class="user" id="admin-user">
+                    <h4>Admin</h4>
+                    <p id="admin-privileges">ALL</p>
+                </div>
+                <div class="user" id="manager-user">
+                    <h4>Manager</h4>
+                    <p id="manager-privileges">SELECT, INSERT</p>
+                </div>
+                <div class="user" id="analyst-user">
+                    <h4>Analyst</h4>
+                    <p id="analyst-privileges">SELECT</p>
+                </div>
+                <div class="user" id="guest-user">
+                    <h4>Guest</h4>
+                    <p id="guest-privileges">-</p>
+                </div>
+            </div>
+            
+            <div id="privilege-status">
+                <p>Select a user and privilege to manage access rights.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Transaction state management
+        const states = ['active', 'partially-committed', 'committed', 'failed', 'aborted'];
+        const stateDescriptions = {
+            'active': 'Transaction is executing and performing operations.',
+            'partially-committed': 'Final operation executed, but changes not yet committed to database.',
+            'committed': 'Changes have been permanently saved to the database.',
+            'failed': 'Transaction cannot proceed due to an error or system failure.',
+            'aborted': 'Transaction has been rolled back and database restored to previous state.'
+        };
+        
+        let currentStateIndex = -1;
+
+        document.getElementById('next-state').addEventListener('click', function() {
+            if (currentStateIndex < states.length - 1) {
+                // Reset all states
+                states.forEach(state => {
+                    document.getElementById(state).classList.remove('active');
+                    document.getElementById(state).classList.add('inactive');
+                });
+                
+                // Move to next state
+                currentStateIndex++;
+                const nextState = states[currentStateIndex];
+                document.getElementById(nextState).classList.remove('inactive');
+                document.getElementById(nextState).classList.add('active');
+                
+                // Update description
+                document.getElementById('state-description').innerHTML = `<p>${stateDescriptions[nextState]}</p>`;
+                
+                // Update button states
+                document.getElementById('prev-state').disabled = false;
+                if (currentStateIndex === states.length - 1) {
+                    document.getElementById('next-state').disabled = true;
+                }
+            }
+        });
+
+        document.getElementById('prev-state').addEventListener('click', function() {
+            if (currentStateIndex > 0) {
+                // Reset current state
+                const currentState = states[currentStateIndex];
+                document.getElementById(currentState).classList.remove('active');
+                document.getElementById(currentState).classList.add('inactive');
+                
+                // Move to previous state
+                currentStateIndex--;
+                const prevState = states[currentStateIndex];
+                document.getElementById(prevState).classList.remove('inactive');
+                document.getElementById(prevState).classList.add('active');
+                
+                // Update description
+                document.getElementById('state-description').innerHTML = `<p>${stateDescriptions[prevState]}</p>`;
+                
+                // Update button states
+                document.getElementById('next-state').disabled = false;
+                if (currentStateIndex === 0) {
+                    document.getElementById('prev-state').disabled = true;
+                }
+            }
+        });
+
+        document.getElementById('reset-states').addEventListener('click', function() {
+            // Reset all states
+            states.forEach(state => {
+                document.getElementById(state).classList.remove('active');
+                document.getElementById(state).classList.add('inactive');
+            });
+            
+            currentStateIndex = -1;
+            document.getElementById('state-description').innerHTML = '<p>Click "Next State" to begin the transaction lifecycle simulation.</p>';
+            document.getElementById('prev-state').disabled = true;
+            document.getElementById('next-state').disabled = false;
+        });
+
+        // ACID property demonstrations
+        function demoAtomicity() {
+            alert('Atomicity Demo:\n\nA transaction transferring $100 from Account A to Account B.\n\nIf the debit succeeds but the credit fails, the entire transaction is rolled back to maintain atomicity.');
+        }
+
+        function demoConsistency() {
+            alert('Consistency Demo:\n\nA transaction must preserve all database constraints.\n\nFor example, if a foreign key constraint exists, the transaction cannot leave orphaned records.');
+        }
+
+        function demoIsolation() {
+            alert('Isolation Demo:\n\nTwo transactions executing concurrently should not interfere with each other.\n\nDatabase systems use locking or multiversion concurrency control to isolate transactions.');
+        }
+
+        function demoDurability() {
+            alert('Durability Demo:\n\nOnce a transaction is committed, its changes must persist even if the system crashes immediately after.\n\nThis is typically achieved through write-ahead logging and database recovery mechanisms.');
+        }
+
+        // Dirty Read Demo
+        function startDirtyReadDemo() {
+            // Reset first
+            resetDirtyReadDemo();
+            
+            // Highlight step 1 for both transactions
+            document.getElementById('t1-step1').classList.add('highlight');
+            document.getElementById('t2-step1').classList.add('highlight');
+            
+            setTimeout(() => {
+                // T1 updates the balance
+                document.getElementById('t1-step1').classList.remove('highlight');
+                document.getElementById('t1-step2').classList.add('highlight');
+                document.getElementById('account1-balance').textContent = '1500';
+                document.getElementById('account1-balance').classList.add('highlight');
+                
+                setTimeout(() => {
+                    // T2 reads the uncommitted data (dirty read)
+                    document.getElementById('t2-step1').classList.remove('highlight');
+                    document.getElementById('t2-step2').classList.add('highlight');
+                    
+                    document.getElementById('dirty-read-explanation').innerHTML = `
+                        <p class="highlight"><strong>Dirty Read Occurred!</strong> T2 has read the uncommitted value (1500) from T1's update.</p>
+                        <p>If T1 now rolls back its transaction, T2 will have read data that never officially existed in the database.</p>
+                    `;
+                }, 1500);
+            }, 1500);
+        }
+
+        function resetDirtyReadDemo() {
+            // Reset transaction steps
+            const steps = ['t1-step1', 't1-step2', 't1-step3', 't2-step1', 't2-step2', 't2-step3'];
+            steps.forEach(step => {
+                document.getElementById(step).classList.remove('highlight');
+            });
+            
+            // Reset account balance
+            document.getElementById('account1-balance').textContent = '1000';
+            document.getElementById('account1-balance').classList.remove('highlight');
+            
+            // Reset explanation
+            document.getElementById('dirty-read-explanation').innerHTML = `
+                <p>When T1 updates but doesn't commit, and T2 reads the uncommitted data, this is a dirty read.</p>
+            `;
+        }
+
+        // GRANT and REVOKE Demo
+        const userPrivileges = {
+            'admin': ['ALL'],
+            'manager': ['SELECT', 'INSERT'],
+            'analyst': ['SELECT'],
+            'guest': []
+        };
+
+        function updatePrivilegeDisplay() {
+            document.getElementById('admin-privileges').textContent = userPrivileges['admin'].join(', ') || '-';
+            document.getElementById('manager-privileges').textContent = userPrivileges['manager'].join(', ') || '-';
+            document.getElementById('analyst-privileges').textContent = userPrivileges['analyst'].join(', ') || '-';
+            document.getElementById('guest-privileges').textContent = userPrivileges['guest'].join(', ') || '-';
+        }
+
+        function grantPrivilege() {
+            const user = document.getElementById('user-select').value;
+            const privilege = document.getElementById('privilege-select').value;
+            
+            if (privilege === 'all') {
+                userPrivileges[user] = ['ALL'];
+            } else if (!userPrivileges[user].includes(privilege) && !userPrivileges[user].includes('ALL')) {
+                userPrivileges[user].push(privilege);
+            }
+            
+            updatePrivilegeDisplay();
+            document.getElementById('privilege-status').innerHTML = `<p class="highlight">GRANTED ${privilege.toUpperCase()} privilege to ${user}.</p>`;
+        }
+
+        function revokePrivilege() {
+            const user = document.getElementById('user-select').value;
+            const privilege = document.getElementById('privilege-select').value;
+            
+            if (privilege === 'all') {
+                userPrivileges[user] = [];
+            } else {
+                userPrivileges[user] = userPrivileges[user].filter(p => p !== privilege);
+            }
+            
+            updatePrivilegeDisplay();
+            document.getElementById('privilege-status').innerHTML = `<p class="highlight">REVOKED ${privilege.toUpperCase()} privilege from ${user}.</p>`;
+        }
+
+        // Initialize the page
+        document.getElementById('prev-state').disabled = true;
+        updatePrivilegeDisplay();
+    </script>
+</body>
+</html>

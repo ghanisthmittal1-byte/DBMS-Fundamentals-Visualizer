@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relational Algebra Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .operations-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .operation {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .operation:hover {
+            background-color: #dfe6e9;
+            transform: translateY(-2px);
+        }
+
+        .operation h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: #2980b9;
+        }
+
+        .operation p {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .tables-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .table-container {
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-table {
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+
+        .operation-active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .operation-active h3, .operation-active p {
+            color: white;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Relational Algebra Visualizer</h1>
+            <p class="description">Create in-memory relations and apply relational algebra operations to see the results dynamically.</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel operations-panel">
+                <h2>Relational Operations</h2>
+                
+                <div class="operation" onclick="selectOperation('select')">
+                    <h3>SELECT (σ)</h3>
+                    <p>Selects rows that satisfy a given condition</p>
+                </div>
+                
+                <div class="operation" onclick="selectOperation('project')">
+                    <h3>PROJECT (π)</h3>
+                    <p>Selects specific columns from a relation</p>
+                </div>
+                
+                <div class="operation" onclick="selectOperation('join')">
+                    <h3>JOIN (⋈)</h3>
+                    <p>Combines rows from two relations based on a condition</p>
+                </div>
+                
+                <div class="operation" onclick="selectOperation('union')">
+                    <h3>UNION (∪)</h3>
+                    <p>Combines rows from two relations (must be union-compatible)</p>
+                </div>
+                
+                <div class="operation" onclick="selectOperation('difference')">
+                    <h3>DIFFERENCE (−)</h3>
+                    <p>Finds rows in one relation not present in another</p>
+                </div>
+
+                <div id="operation-details">
+                    <!-- Operation forms will be displayed here -->
+                </div>
+            </div>
+
+            <div class="panel tables-panel">
+                <h2>Your Relations</h2>
+                
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Create New Relation</h3>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="table-name">Relation Name</label>
+                        <input type="text" id="table-name" placeholder="e.g., Students">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="table-columns">Columns (comma separated)</label>
+                        <input type="text" id="table-columns" placeholder="e.g., id, name, age">
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="createTable()">Create Relation</button>
+                </div>
+                
+                <div id="tables-container">
+                    <!-- Created tables will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <h2>Operation Result</h2>
+            <div id="result-container">
+                <p>No operation performed yet. Select an operation to see results.</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Relational Algebra Visualizer | Created with HTML, CSS and JavaScript</p>
+        </footer>
+    </div>
+
+    <script>
+        // Data structure to store tables
+        let tables = {};
+        let selectedOperation = null;
+        let selectedTable = null;
+
+        // Create a new table
+        function createTable() {
+            const nameInput = document.getElementById('table-name');
+            const columnsInput = document.getElementById('table-columns');
+            
+            const name = nameInput.value.trim();
+            const columns = columnsInput.value.split(',').map(col => col.trim()).filter(col => col !== '');
+            
+            if (!name) {
+                alert('Please enter a table name');
+                return;
+            }
+            
+            if (columns.length === 0) {
+                alert('Please enter at least one column');
+                return;
+            }
+            
+            if (tables[name]) {
+                alert('A table with this name already exists');
+                return;
+            }
+            
+            // Create the table structure
+            tables[name] = {
+                name: name,
+                columns: columns,
+                data: []
+            };
+            
+            // Update UI
+            renderTables();
+            
+            // Clear inputs
+            nameInput.value = '';
+            columnsInput.value = '';
+        }
+
+        // Render all tables in the UI
+        function renderTables() {
+            const tablesContainer = document.getElementById('tables-container');
+            tablesContainer.innerHTML = '';
+            
+            for (const tableName in tables) {
+                const table = tables[tableName];
+                
+                const tableElement = document.createElement('div');
+                tableElement.className = 'table-container';
+                
+                let tableHTML = `
+                    <div class="table-header">
+                        <h3>${table.name}</h3>
+                        <div>
+                            <button class="btn btn-primary" onclick="addRow('${tableName}')">Add Row</button>
+                            <button class="btn btn-danger" onclick="deleteTable('${tableName}')">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                `;
+                
+                // Add column headers
+                for (const column of table.columns) {
+                    tableHTML += `<th>${column}</th>`;
+                }
+                
+                tableHTML += `<th>Actions</th></tr></thead><tbody>`;
+                
+                // Add rows
+                for (let i = 0; i < table.data.length; i++) {
+                    tableHTML += `<tr>`;
+                    
+                    for (const column of table.columns) {
+                        tableHTML += `<td>${table.data[i][column] || ''}</td>`;
+                    }
+                    
+                    tableHTML += `<td><button class="btn btn-danger" onclick="deleteRow('${tableName}', ${i})">Delete</button></td>`;
+                    tableHTML += `</tr>`;
+                }
+                
+                tableHTML += `</tbody></table>`;
+                
+                // Add row form
+                tableHTML += `
+                    <div id="row-form-${tableName}" style="display: none;">
+                        <h4>Add New Row</h4>
+                `;
+                
+                for (const column of table.columns) {
+                    tableHTML += `
+                        <div class="form-group">
+                            <label for="input-${tableName}-${column}">${column}</label>
+                            <input type="text" id="input-${tableName}-${column}">
+                        </div>
+                    `;
+                }
+                
+                tableHTML += `
+                        <button class="btn btn-primary" onclick="saveRow('${tableName}')">Save Row</button>
+                        <button class="btn" onclick="cancelAddRow('${tableName}')">Cancel</button>
+                    </div>
+                `;
+                
+                tableElement.innerHTML = tableHTML;
+                tablesContainer.appendChild(tableElement);
+            }
+        }
+
+        // Show form to add a new row
+        function addRow(tableName) {
+            document.getElementById(`row-form-${tableName}`).style.display = 'block';
+        }
+
+        // Cancel adding a new row
+        function cancelAddRow(tableName) {
+            document.getElementById(`row-form-${tableName}`).style.display = 'none';
+        }
+
+        // Save a new row to the table
+        function saveRow(tableName) {
+            const table = tables[tableName];
+            const newRow = {};
+            
+            for (const column of table.columns) {
+                const input = document.getElementById(`input-${tableName}-${column}`);
+                newRow[column] = input.value.trim();
+                input.value = '';
+            }
+            
+            table.data.push(newRow);
+            document.getElementById(`row-form-${tableName}`).style.display = 'none';
+            renderTables();
+        }
+
+        // Delete a row from a table
+        function deleteRow(tableName, rowIndex) {
+            tables[tableName].data.splice(rowIndex, 1);
+            renderTables();
+        }
+
+        // Delete a table
+        function deleteTable(tableName) {
+            if (confirm(`Are you sure you want to delete the table "${tableName}"?`)) {
+                delete tables[tableName];
+                renderTables();
+                
+                // Clear result if it was based on this table
+                document.getElementById('result-container').innerHTML = 
+                    '<p>No operation performed yet. Select an operation to see results.</p>';
+            }
+        }
+
+        // Select an operation to perform
+        function selectOperation(op) {
+            selectedOperation = op;
+            
+            // Highlight selected operation
+            const operations = document.querySelectorAll('.operation');
+            operations.forEach(el => el.classList.remove('operation-active'));
+            event.currentTarget.classList.add('operation-active');
+            
+            // Show operation form
+            const opDetails = document.getElementById('operation-details');
+            opDetails.innerHTML = '';
+            
+            let formHTML = `<div><h3>${op.toUpperCase()} Operation</h3>`;
+            
+            // Create form based on selected operation
+            switch(op) {
+                case 'select':
+                    formHTML += `
+                        <div class="form-group">
+                            <label for="select-table">Select Table</label>
+                            <select id="select-table" onchange="updateSelectConditions()">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <div id="select-conditions">
+                            <p>Select a table first to define conditions</p>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="performSelect()">Perform SELECT</button>
+                    `;
+                    break;
+                    
+                case 'project':
+                    formHTML += `
+                        <div class="form-group">
+                            <label for="project-table">Select Table</label>
+                            <select id="project-table" onchange="updateProjectColumns()">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <div id="project-columns">
+                            <p>Select a table first to choose columns</p>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="performProject()">Perform PROJECT</button>
+                    `;
+                    break;
+                    
+                case 'join':
+                    formHTML += `
+                        <div class="form-group">
+                            <label for="join-table1">Select First Table</label>
+                            <select id="join-table1">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="join-table2">Select Second Table</label>
+                            <select id="join-table2">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="join-condition">Join Condition (e.g., table1.column = table2.column)</label>
+                            <input type="text" id="join-condition" placeholder="e.g., Students.id = Enrollments.student_id">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="performJoin()">Perform JOIN</button>
+                    `;
+                    break;
+                    
+                case 'union':
+                    formHTML += `
+                        <div class="form-group">
+                            <label for="union-table1">Select First Table</label>
+                            <select id="union-table1">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="union-table2">Select Second Table</label>
+                            <select id="union-table2">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="performUnion()">Perform UNION</button>
+                    `;
+                    break;
+                    
+                case 'difference':
+                    formHTML += `
+                        <div class="form-group">
+                            <label for="diff-table1">Select First Table</label>
+                            <select id="diff-table1">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="diff-table2">Select Second Table</label>
+                            <select id="diff-table2">
+                                <option value="">Choose a table</option>
+                                ${generateTableOptions()}
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="performDifference()">Perform DIFFERENCE</button>
+                    `;
+                    break;
+            }
+            
+            formHTML += `</div>`;
+            opDetails.innerHTML = formHTML;
+        }
+
+        // Generate options for table selection dropdowns
+        function generateTableOptions() {
+            let options = '';
+            for (const tableName in tables) {
+                options += `<option value="${tableName}">${tableName}</option>`;
+            }
+            return options;
+        }
+
+        // Update conditions for SELECT operation based on selected table
+        function updateSelectConditions() {
+            const tableName = document.getElementById('select-table').value;
+            if (!tableName) return;
+            
+            const table = tables[tableName];
+            const conditionsDiv = document.getElementById('select-conditions');
+            
+            let conditionsHTML = `
+                <div class="form-group">
+                    <label for="select-column">Column to filter</label>
+                    <select id="select-column">
+            `;
+            
+            for (const column of table.columns) {
+                conditionsHTML += `<option value="${column}">${column}</option>`;
+            }
+            
+            conditionsHTML += `
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="select-operator">Operator</label>
+                    <select id="select-operator">
+                        <option value="=">=</option>
+                        <option value="!=">!=</option>
+                        <option value="<"><</option>
+                        <option value=">">></option>
+                        <option value="<="><=</option>
+                        <option value=">=">>=</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="select-value">Value</label>
+                    <input type="text" id="select-value">
+                </div>
+            `;
+            
+            conditionsDiv.innerHTML = conditionsHTML;
+        }
+
+        // Update columns for PROJECT operation based on selected table
+        function updateProjectColumns() {
+            const tableName = document.getElementById('project-table').value;
+            if (!tableName) return;
+            
+            const table = tables[tableName];
+            const columnsDiv = document.getElementById('project-columns');
+            
+            let columnsHTML = `
+                <div class="form-group">
+                    <label>Select columns to project:</label>
+            `;
+            
+            for (const column of table.columns) {
+                columnsHTML += `
+                    <div>
+                        <input type="checkbox" id="project-${column}" value="${column}">
+                        <label for="project-${column}">${column}</label>
+                    </div>
+                `;
+            }
+            
+            columnsDiv.innerHTML = columnsHTML;
+        }
+
+        // Perform SELECT operation
+        function performSelect() {
+            const tableName = document.getElementById('select-table').value;
+            if (!tableName) {
+                alert('Please select a table');
+                return;
+            }
+            
+            const column = document.getElementById('select-column').value;
+            const operator = document.getElementById('select-operator').value;
+            const value = document.getElementById('select-value').value;
+            
+            if (!value) {
+                alert('Please enter a value to filter by');
+                return;
+            }
+            
+            const table = tables[tableName];
+            const result = [];
+            
+            for (const row of table.data) {
+                let conditionMet = false;
+                const rowValue = row[column];
+                
+                // Evaluate condition based on operator
+                switch(operator) {
+                    case '=': conditionMet = rowValue == value; break;
+                    case '!=': conditionMet = rowValue != value; break;
+                    case '<': conditionMet = Number(rowValue) < Number(value); break;
+                    case '>': conditionMet = Number(rowValue) > Number(value); break;
+                    case '<=': conditionMet = Number(rowValue) <= Number(value); break;
+                    case '>=': conditionMet = Number(rowValue) >= Number(value); break;
+                }
+                
+                if (conditionMet) {
+                    result.push({...row});
+                }
+            }
+            
+            displayResult(`σ<sub>${column} ${operator} ${value}</sub>(${tableName})`, table.columns, result);
+        }
+
+        // Perform PROJECT operation
+        function performProject() {
+            const tableName = document.getElementById('project-table').value;
+            if (!tableName) {
+                alert('Please select a table');
+                return;
+            }
+            
+            const table = tables[tableName];
+            const selectedColumns = [];
+            
+            for (const column of table.columns) {
+                const checkbox = document.getElementById(`project-${column}`);
+                if (checkbox && checkbox.checked) {
+                    selectedColumns.push(column);
+                }
+            }
+            
+            if (selectedColumns.length === 0) {
+                alert('Please select at least one column to project');
+                return;
+            }
+            
+            const result = [];
+            
+            for (const row of table.data) {
+                const newRow = {};
+                for (const col of selectedColumns) {
+                    newRow[col] = row[col];
+                }
+                result.push(newRow);
+            }
+            
+            displayResult(`π<sub>${selectedColumns.join(', ')}</sub>(${tableName})`, selectedColumns, result);
+        }
+
+        // Perform JOIN operation
+        function performJoin() {
+            const table1Name = document.getElementById('join-table1').value;
+            const table2Name = document.getElementById('join-table2').value;
+            const condition = document.getElementById('join-condition').value;
+            
+            if (!table1Name || !table2Name) {
+                alert('Please select both tables');
+                return;
+            }
+            
+            if (!condition) {
+                alert('Please enter a join condition');
+                return;
+            }
+            
+            // Parse condition (simple implementation for demo)
+            const [part1, part2] = condition.split('=').map(part => part.trim());
+            const [t1, col1] = part1.split('.');
+            const [t2, col2] = part2.split('.');
+            
+            if (!col1 || !col2) {
+                alert('Please use format: table1.column = table2.column');
+                return;
+            }
+            
+            const table1 = tables[table1Name];
+            const table2 = tables[table2Name];
+            
+            // Combine columns
+            const allColumns = [...table1.columns, ...table2.columns];
+            
+            const result = [];
+            
+            // Perform nested loop join (simple implementation)
+            for (const row1 of table1.data) {
+                for (const row2 of table2.data) {
+                    if (row1[col1] === row2[col2]) {
+                        const newRow = {...row1, ...row2};
+                        result.push(newRow);
+                    }
+                }
+            }
+            
+            displayResult(`${table1Name} ⋈<sub>${condition}</sub> ${table2Name}`, allColumns, result);
+        }
+
+        // Perform UNION operation
+        function performUnion() {
+            const table1Name = document.getElementById('union-table1').value;
+            const table2Name = document.getElementById('union-table2').value;
+            
+            if (!table1Name || !table2Name) {
+                alert('Please select both tables');
+                return;
+            }
+            
+            const table1 = tables[table1Name];
+            const table2 = tables[table2Name];
+            
+            // Check if tables are union-compatible (same columns)
+            if (table1.columns.length !== table2.columns.length) {
+                alert('Tables must have the same number of columns for UNION operation');
+                return;
+            }
+            
+            for (let i = 0; i < table1.columns.length; i++) {
+                if (table1.columns[i] !== table2.columns[i]) {
+                    alert('Tables must have the same column structure for UNION operation');
+                    return;
+                }
+            }
+            
+            const result = [...table1.data];
+            
+            // Add rows from table2 that aren't already in result
+            for (const row2 of table2.data) {
+                let found = false;
+                
+                for (const row1 of table1.data) {
+                    let allMatch = true;
+                    
+                    for (const col of table1.columns) {
+                        if (row1[col] !== row2[col]) {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    
+                    if (allMatch) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    result.push({...row2});
+                }
+            }
+            
+            displayResult(`${table1Name} ∪ ${table2Name}`, table1.columns, result);
+        }
+
+        // Perform DIFFERENCE operation
+        function performDifference() {
+            const table1Name = document.getElementById('diff-table1').value;
+            const table2Name = document.getElementById('diff-table2').value;
+            
+            if (!table1Name || !table2Name) {
+                alert('Please select both tables');
+                return;
+            }
+            
+            const table1 = tables[table1Name];
+            const table2 = tables[table2Name];
+            
+            // Check if tables are union-compatible (same columns)
+            if (table1.columns.length !== table2.columns.length) {
+                alert('Tables must have the same number of columns for DIFFERENCE operation');
+                return;
+            }
+            
+            for (let i = 0; i < table1.columns.length; i++) {
+                if (table1.columns[i] !== table2.columns[i]) {
+                    alert('Tables must have the same column structure for DIFFERENCE operation');
+                    return;
+                }
+            }
+            
+            const result = [];
+            
+            // Find rows in table1 that are not in table2
+            for (const row1 of table1.data) {
+                let found = false;
+                
+                for (const row2 of table2.data) {
+                    let allMatch = true;
+                    
+                    for (const col of table1.columns) {
+                        if (row1[col] !== row2[col]) {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    
+                    if (allMatch) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    result.push({...row1});
+                }
+            }
+            
+            displayResult(`${table1Name} - ${table2Name}`, table1.columns, result);
+        }
+
+        // Display the result of an operation
+        function displayResult(operationName, columns, data) {
+            const resultContainer = document.getElementById('result-container');
+            
+            if (data.length === 0) {
+                resultContainer.innerHTML = `
+                    <p><strong>${operationName}</strong> returned no results.</p>
+                `;
+                return;
+            }
+            
+            let resultHTML = `
+                <p><strong>Operation:</strong> ${operationName}</p>
+                <p><strong>Rows:</strong> ${data.length}</p>
+                
+                <div class="result-table">
+                    <table>
+                        <thead>
+                            <tr>
+            `;
+            
+            for (const column of columns) {
+                resultHTML += `<th>${column}</th>`;
+            }
+            
+            resultHTML += `</tr></thead><tbody>`;
+            
+            for (const row of data) {
+                resultHTML += `<tr>`;
+                
+                for (const column of columns) {
+                    resultHTML += `<td>${row[column] || ''}</td>`;
+                }
+                
+                resultHTML += `</tr>`;
+            }
+            
+            resultHTML += `</tbody></table></div>`;
+            
+            resultContainer.innerHTML = resultHTML;
+        }
+
+        // Initialize with sample data
+        function initSampleData() {
+            // Create sample tables
+            tables['Students'] = {
+                name: 'Students',
+                columns: ['id', 'name', 'major', 'year'],
+                data: [
+                    {id: '1', name: 'Alice', major: 'Computer Science', year: '3'},
+                    {id: '2', name: 'Bob', major: 'Mathematics', year: '2'},
+                    {id: '3', name: 'Charlie', major: 'Physics', year: '4'},
+                    {id: '4', name: 'Diana', major: 'Computer Science', year: '3'}
+                ]
+            };
+            
+            tables['Courses'] = {
+                name: 'Courses',
+                columns: ['course_id', 'title', 'instructor'],
+                data: [
+                    {course_id: 'CS101', title: 'Intro to Programming', instructor: 'Dr. Smith'},
+                    {course_id: 'CS202', title: 'Data Structures', instructor: 'Dr. Johnson'},
+                    {course_id: 'MATH101', title: 'Calculus I', instructor: 'Dr. Williams'}
+                ]
+            };
+            
+            tables['Enrollments'] = {
+                name: 'Enrollments',
+                columns: ['student_id', 'course_id', 'grade'],
+                data: [
+                    {student_id: '1', course_id: 'CS101', grade: 'A'},
+                    {student_id: '1', course_id: 'CS202', grade: 'B'},
+                    {student_id: '2', course_id: 'MATH101', grade: 'A'},
+                    {student_id: '3', course_id: 'CS101', grade: 'C'},
+                    {student_id: '4', course_id: 'CS202', grade: 'A'}
+                ]
+            };
+            
+            renderTables();
+        }
+
+        // Initialize the application
+        window.onload = function() {
+            initSampleData();
+        };
+    </script>
+</body>
+</html>
